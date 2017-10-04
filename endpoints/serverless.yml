@@ -1,0 +1,90 @@
+service: 
+  name: sam-routers 
+  awsKmsKeyArn: arn:aws:kms:ap-southeast-2:235281544521:key/d7c6f24f-2174-4d3a-aa18-aeddbf19849d
+plugins:
+  - serverless-secrets-plugin
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  region: ap-southeast-2 
+  stage: prod # we are cowboys (can set-up another channel as dev in the future)
+  timeout: 60 
+  role: arn:aws:iam::235281544521:role/lambda_execution #custom role 
+  cfLogs: true
+
+custom:
+  secrets: ${file(secrets.${opt:stage, self:provider.stage}.yml)}
+
+package:
+  individually: true
+  exclude:
+    - ./**
+
+#Note serverless converts dashes to the literal word Dash
+resources:
+  Resources:
+    IntermediateDashHandlerLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        RetentionInDays: "14"
+
+functions:
+  intermediate-handler:
+    handler: intermediate-handler/index.handler
+    package:
+      include:
+        - intermediate-handler/index.js
+    events:
+      - http:
+          path: /intermediate-handler 
+          method: post
+          cors: true
+  auth-slack-jwt-check:
+    handler: auth-slack-jwt-check/index.handler
+    package:
+      include:
+        - auth-slack-jwt-check/index.js
+        - node_modules/**
+    environment:
+      JWT_SECRET: ${self:custom.secrets.JWT_SECRET} 
+    events:
+      - http:
+          path: /jwt-check 
+          method: post
+          cors: true
+  auth-slack-hop:
+    handler: auth-slack-hop/index.handler
+    package:
+      include:
+        - auth-slack-hop/index.js
+        - node_modules/**
+        - common/requestHelpers.js
+    environment:
+      SLACK_CLIENT_SECRET: ${self:custom.secrets.SLACK_CLIENT_SECRET}
+      JWT_SECRET: ${self:custom.secrets.JWT_SECRET} 
+      SLACK_CLIENT_ID: ${self:custom.secrets.SLACK_CLIENT_ID}
+      SLACK_BOT_TOKEN: ${self:custom.secrets.SLACK_BOT_TOKEN}
+    events:
+      - http:
+          path: /slack-hop
+          method: post
+          cors: true
+  handle-site-questions:
+    handler: handle-site-questions/index.handler
+    environment:
+      JWT_SECRET: ${self:custom.secrets.JWT_SECRET}
+    package:
+      include:
+        - handle-site-questions/index.js
+        - common/awsHelpers.js
+        - common/requestHelpers.js
+        - common/slackApiWrapers.js
+        - common/questionTemplates.js
+        - common/s3Wrappers.js
+        - node_modules/**
+    events:
+      - http:
+          path: /site-questions
+          method: post
+          cors: true

@@ -1,0 +1,72 @@
+service: 
+  name: sam-modules 
+  awsKmsKeyArn: arn:aws:kms:ap-southeast-2:235281544521:key/d7c6f24f-2174-4d3a-aa18-aeddbf19849d
+plugins:
+  - serverless-secrets-plugin
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  region: ap-southeast-2 
+  stage: prod # we are cowboys (can set-up another channel as dev in the future)
+  timeout: 60 
+  role: arn:aws:iam::235281544521:role/lambda_execution #custom role 
+
+custom:
+  secrets: ${file(secrets.${opt:stage, self:provider.stage}.yml)}
+
+package:
+  individually: true
+  exclude:
+    - ./**
+
+functions:
+  execute-off-schedule-questions:
+    handler: execute-offschedule-questions/index.handler
+    environment:
+      SLACK_BOT_TOKEN: ${self:custom.secrets.SLACK_BOT_TOKEN}
+    package:
+      include:
+        - execute-off-schedule-questions/index.js
+        - common/awsHelpers.js
+        - common/requestHelpers.js
+        - common/slackApiWrapers.js
+        - common/questionTemplates.js
+        - common/s3Wrappers.js
+  execute-site-questions:
+    handler: execute-site-questions/index.handler
+    environment:
+      SLACK_BOT_TOKEN: ${self:custom.secrets.SLACK_BOT_TOKEN}
+    package:
+      include:
+        - execute-site-questions/index.js
+        - common/awsHelpers.js
+        - common/requestHelpers.js
+        - common/slackApiWrapers.js
+        - common/questionTemplates.js
+        - common/s3Wrappers.js
+  generate-report-site-questions:
+    handler: generate-report-site-questions/index.handler
+    environment:
+      SLACK_BOT_TOKEN: ${self:custom.secrets.SLACK_BOT_TOKEN}
+    package:
+      include:
+        - generate-report-site-questions/index.js
+        - common/awsHelpers.js
+        - common/requestHelpers.js
+        - common/slackApiWrapers.js
+        - common/questionTemplates.js
+        - common/s3Wrappers.js
+        - common/generateCharts.js
+  handle-response:
+    handler: handle-response/index.handler
+    environment:
+      SLACK_BOT_TOKEN: ${self:custom.secrets.SLACK_BOT_TOKEN}
+    package:
+      include:
+        - handle-response/index.js
+        - common/awsHelpers.js
+        - common/requestHelpers.js
+        - common/slackApiWrapers.js
+        - common/questionTemplates.js
+        - common/s3Wrappers.js

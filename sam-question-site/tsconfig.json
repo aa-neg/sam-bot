@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "moduleResolution": "node",
+    "checkJs": true,
+    "target": "es6",
+    "module": "es2015",
+    "experimentalDecorators": true,
+    "jsx": "react",
+    "allowSyntheticDefaultImports": true,
+    "lib": ["es2015", "dom"]
+  },
+  "include": ["index.js", "components/**/*"]
+}
